@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36623.8
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NekoDatabaseGateway", "NekoDatabaseGateway\NekoDatabaseGateway.csproj", "{FC8D4EC1-629D-42DF-80BE-08B793C9FFD7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NekoDbGatewayWindowDemo", "NekoDbGatewayWindowDemo\NekoDbGatewayWindowDemo.csproj", "{AF587E0D-63C2-43BD-B062-19BEA90421CE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FC8D4EC1-629D-42DF-80BE-08B793C9FFD7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FC8D4EC1-629D-42DF-80BE-08B793C9FFD7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FC8D4EC1-629D-42DF-80BE-08B793C9FFD7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FC8D4EC1-629D-42DF-80BE-08B793C9FFD7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AF587E0D-63C2-43BD-B062-19BEA90421CE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AF587E0D-63C2-43BD-B062-19BEA90421CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AF587E0D-63C2-43BD-B062-19BEA90421CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AF587E0D-63C2-43BD-B062-19BEA90421CE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6FE61056-E210-4163-BFFF-3BCD715BE755}
+	EndGlobalSection
+EndGlobal
