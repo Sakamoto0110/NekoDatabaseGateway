@@ -2,6 +2,7 @@
 using System.Data.Common;
 using System.Data.OleDb;
 using System.Data.SqlClient;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace NekoDbGateway
@@ -10,7 +11,7 @@ namespace NekoDbGateway
     /// Abstração de fábrica de conexões para o <see cref="DatabaseGateway"/>.
     /// Permite desacoplar o tipo concreto de <see cref="DbConnection"/>.
     /// </summary>
-    public interface IDbConnectionFactory
+    public interface IDbConnectionFactory : IDisposable
     {
         /// <summary>
         /// Cria uma nova instância de <see cref="DbConnection"/> ainda fechada.
@@ -25,7 +26,7 @@ namespace NekoDbGateway
     public class DbConnectionAbstractFactory<T> : IDbConnectionFactory where T : DbConnection
     {
         private readonly string _connectionString;
-
+        private DbConnection _connection;
         /// <summary>
         /// Inicializa a fábrica com a connection string informada.
         /// </summary>
@@ -38,8 +39,21 @@ namespace NekoDbGateway
         /// <inheritdoc />
         public Task<DbConnection> Create()
         {
-            DbConnection conn = (DbConnection)Activator.CreateInstance(typeof(T), _connectionString);
-            return Task.FromResult(conn);
+            _connection = (DbConnection)Activator.CreateInstance(typeof(T), _connectionString);
+            return Task.FromResult(_connection);
+        }
+
+        public void Dispose()
+        {
+            if(_connection != null && _connection.State != System.Data.ConnectionState.Closed)
+            {
+                try
+                {
+                    _connection.Close();
+                }
+                catch(Exception ex) { Debug.WriteLine($"Unable to close {_connection.Database} connection\n{ex.Message}"); }
+            }
+            _connection.Dispose();            
         }
     }
 

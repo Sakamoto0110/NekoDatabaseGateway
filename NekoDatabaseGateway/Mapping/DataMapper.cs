@@ -56,6 +56,61 @@ namespace NekoDbGateway
             return obj;
         }
 
+        public static object Map(
+    Dictionary<string, RecordItem> row,
+    Type targetType)
+        {
+            if(row == null)
+                throw new ArgumentNullException(nameof(row));
+            if(targetType == null)
+                throw new ArgumentNullException(nameof(targetType));
+
+            ConstructorInfo ctor = targetType.GetConstructor(Type.EmptyTypes);
+            if(ctor == null)
+                throw new InvalidOperationException(
+                    $"Type '{targetType.FullName}' must have a parameterless constructor.");
+
+            object instance = ctor.Invoke(null);
+            MapInto(instance, row);
+            return instance;
+        }
+        private static void MapInto(
+    object instance,
+    Dictionary<string, RecordItem> row)
+        {
+            Type type = instance.GetType();
+
+            PropertyInfo[] props = type
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(p => p.CanWrite)
+                .ToArray();
+
+            for(int i = 0; i < props.Length; i++)
+            {
+                PropertyInfo prop = props[i];
+
+                KeyValuePair<string, RecordItem> kv =
+                    row.FirstOrDefault(r =>
+                        string.Equals(r.Key, prop.Name,
+                            StringComparison.OrdinalIgnoreCase));
+
+                if(kv.Key == null)
+                    continue;
+
+                RecordItem record = kv.Value;
+
+                try
+                {
+                    object converted = ConvertValue(record, prop.PropertyType);
+                    prop.SetValue(instance, converted, null);
+                }
+                catch
+                {
+                    // intentionally tolerant
+                }
+            }
+        }
+
         private static object ConvertValue(RecordItem Record, Type Target)
         {
             if(Target == typeof(string)) return Record.As<string>();

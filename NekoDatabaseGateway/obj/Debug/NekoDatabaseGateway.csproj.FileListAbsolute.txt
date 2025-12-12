@@ -1,0 +1,6 @@
+C:\_____________\Sub projects\NekoDbGateway\NekoDatabaseGateway\bin\Debug\NekoDatabaseGateway.dll
+C:\_____________\Sub projects\NekoDbGateway\NekoDatabaseGateway\bin\Debug\NekoDatabaseGateway.pdb
+C:\_____________\Sub projects\NekoDbGateway\NekoDatabaseGateway\obj\Debug\NekoDatabaseGateway.csproj.AssemblyReference.cache
+C:\_____________\Sub projects\NekoDbGateway\NekoDatabaseGateway\obj\Debug\NekoDatabaseGateway.csproj.CoreCompileInputs.cache
+C:\_____________\Sub projects\NekoDbGateway\NekoDatabaseGateway\obj\Debug\NekoDatabaseGateway.dll
+C:\_____________\Sub projects\NekoDbGateway\NekoDatabaseGateway\obj\Debug\NekoDatabaseGateway.pdb

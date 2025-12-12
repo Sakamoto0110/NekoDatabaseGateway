@@ -55,6 +55,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Query\DbQuery.cs" />
     <Compile Include="Query\QueryBuilder.cs" />
+    <Compile Include="Query\QueryExecutionContext.cs" />
     <Compile Include="Query\QueryModel.cs" />
     <Compile Include="Query\Translators.cs" />
   </ItemGroup>

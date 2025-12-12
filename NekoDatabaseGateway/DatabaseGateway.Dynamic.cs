@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NekoDbGateway.Query;
+using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Globalization;
@@ -278,33 +279,29 @@ namespace NekoDbGateway
 
         #region Dynamic API (IL + DynamicRow, no DTO)
 
-        public async Task<List<DynamicRow>> GetDynamic<TTranslator>(
-            QueryBuilder Builder,
-            CancellationToken Ct = default(CancellationToken))
-            where TTranslator : IDbQueryTranslator, new()
+        public async Task<List<DynamicRow>> GetDynamic<TTranslator>(QueryExecutionContext ctx,QueryBuilder Builder,  CancellationToken Ct = default(CancellationToken))where TTranslator : IDbQueryTranslator, new()
         {
             if(Builder == null) throw new ArgumentNullException(nameof(Builder));
+            if(ctx == null) throw new ArgumentNullException(nameof(ctx));
 
             List<DynamicRow> list = new List<DynamicRow>();
-            await ReadDynamic<TTranslator>(Builder, delegate (DynamicRow row) { list.Add(row); }, Ct)
+            await ReadDynamic<TTranslator>(ctx, Builder, delegate (DynamicRow row) { list.Add(row); }, Ct)
                 .ConfigureAwait(false);
             return list;
         }
 
-        public async Task ReadDynamic<TTranslator>(
-            QueryBuilder Builder,
-            Action<DynamicRow> Callback,
-            CancellationToken Ct = default(CancellationToken))
-            where TTranslator : IDbQueryTranslator, new()
+        public async Task ReadDynamic<TTranslator>(QueryExecutionContext ctx,QueryBuilder Builder ,Action<DynamicRow> Callback,CancellationToken Ct = default(CancellationToken))where TTranslator : IDbQueryTranslator, new()
         {
             if(Builder == null) throw new ArgumentNullException(nameof(Builder));
             if(Callback == null) throw new ArgumentNullException(nameof(Callback));
+            if(ctx == null) throw new ArgumentNullException(nameof(ctx));
 
             TTranslator translator = new TTranslator();
             QueryModel model = Builder.Build();
+            ctx.RaiseSqlGenerated(model.Sql);
             DbQuery dbq = translator.Translate(model);
 
-            await WithCommandAsync(dbq.Sql, dbq.Parameters, async delegate (DbCommand cmd)
+            await WithCommandAsync(ctx, dbq.Sql,  dbq.Parameters, async delegate (DbCommand cmd)
             {
                 using(DbDataReader reader = await ExecuteReaderSafeAsync(cmd, Ct).ConfigureAwait(false))
                 {
@@ -320,8 +317,15 @@ namespace NekoDbGateway
                         object inst = Activator.CreateInstance(ilType);
                         FillDynamicObject(inst, ilType, schema, reader);
                         DynamicRow row = new DynamicRow(inst);
-                        Callback(row);
+                        try
+                        {
+                            ctx.RaiseSqlDispatch(dbq.Sql);
+                            Callback(row);
+                        }
+                        catch(Exception ex) { ctx.RaiseError(dbq.Sql,ex); }
+                        
                     }
+                    
                 }
 
                 return 0;

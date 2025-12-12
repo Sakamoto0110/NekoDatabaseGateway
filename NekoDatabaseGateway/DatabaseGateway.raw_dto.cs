@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NekoDbGateway.Query;
+using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Globalization;
@@ -12,9 +13,9 @@ namespace NekoDbGateway
     {
         #region Raw API (RecordItem)
 
-        public async Task<bool> ContainsData(string Sql, CancellationToken Ct = default(CancellationToken))
+        public async Task<bool> ContainsData(QueryExecutionContext ctx,string Sql,CancellationToken Ct = default(CancellationToken))
         {
-            bool has = await WithCommandAsync(Sql, async delegate (DbCommand cmd)
+            bool has = await WithCommandAsync(ctx,Sql, async delegate (DbCommand cmd)
             {
                 using(DbDataReader reader = await ExecuteReaderSafeAsync(cmd, Ct).ConfigureAwait(false))
                 {
@@ -26,19 +27,14 @@ namespace NekoDbGateway
             return has;
         }
 
-        public Task<List<Dictionary<string, RecordItem>>> GetRaw(
-            string Sql,
-            CancellationToken Ct = default(CancellationToken))
+        public Task<List<Dictionary<string, RecordItem>>> GetRaw(QueryExecutionContext ctx,string Sql,CancellationToken Ct = default(CancellationToken))
         {
-            return GetRaw(Sql, null, Ct);
+            return GetRaw(ctx,Sql,null, Ct);
         }
 
-        public async Task<List<Dictionary<string, RecordItem>>> GetRaw(
-            string Sql,
-            Dictionary<string, object> Parameters,
-            CancellationToken Ct = default(CancellationToken))
+        public async Task<List<Dictionary<string, RecordItem>>> GetRaw(QueryExecutionContext ctx,string Sql, Dictionary<string, object> Parameters,CancellationToken Ct = default(CancellationToken))
         {
-            List<Dictionary<string, RecordItem>> result = await WithCommandAsync(Sql, Parameters, async delegate (DbCommand cmd)
+            List<Dictionary<string, RecordItem>> result = await WithCommandAsync(ctx,Sql,Parameters, async delegate (DbCommand cmd)
             {
                 List<Dictionary<string, RecordItem>> list = new List<Dictionary<string, RecordItem>>();
 
@@ -72,23 +68,17 @@ namespace NekoDbGateway
             return result;
         }
 
-        public Task ReadRaw(
-            string Sql,
-            Action<Dictionary<string, RecordItem>> Callback,
-            CancellationToken Ct = default(CancellationToken))
+        public Task ReadRaw(QueryExecutionContext ctx,string Sql,Action<Dictionary<string, RecordItem>> Callback,CancellationToken Ct = default(CancellationToken))
         {
-            return ReadRaw(Sql, null, Callback, Ct);
+            return ReadRaw(ctx,Sql, null, Callback, Ct);
         }
 
-        public async Task ReadRaw(
-            string Sql,
-            Dictionary<string, object> Parameters,
-            Action<Dictionary<string, RecordItem>> Callback,
-            CancellationToken Ct = default(CancellationToken))
+        public async Task ReadRaw(QueryExecutionContext ctx,string Sql,Dictionary<string, object> Parameters,Action<Dictionary<string, RecordItem>> Callback,CancellationToken Ct = default(CancellationToken))
         {
             if(Callback == null) throw new ArgumentNullException(nameof(Callback));
+            if(ctx == null) throw new ArgumentNullException(nameof(ctx));
 
-            await WithCommandAsync(Sql, Parameters, async delegate (DbCommand cmd)
+            await WithCommandAsync(ctx,Sql, Parameters, async delegate (DbCommand cmd)
             {
                 using(DbDataReader reader = await ExecuteReaderSafeAsync(cmd, Ct).ConfigureAwait(false))
                 {
@@ -111,8 +101,11 @@ namespace NekoDbGateway
                             };
                             row[col] = item;
                         }
-
-                        Callback(row);
+                        try
+                        {
+                            Callback(row);
+                        }
+                        catch(Exception ex) { ctx.RaiseError(Sql, ex); }
                     }
                 }
 
@@ -120,114 +113,128 @@ namespace NekoDbGateway
             }, Ct).ConfigureAwait(false);
         }
 
-        protected async Task<int> Upsert(
-            string Sql,
-            Dictionary<string, object> Parameters,
-            CancellationToken Ct = default(CancellationToken))
+        protected async Task<int> Upsert(QueryExecutionContext ctx,string Sql,Dictionary<string, object> Parameters,CancellationToken Ct = default(CancellationToken))
         {
             if(string.IsNullOrWhiteSpace(Sql))
                 throw new ArgumentNullException(nameof(Sql));
+            if(ctx == null) throw new ArgumentNullException(nameof(ctx));
 
-            int affected = await WithCommandAsync(Sql, Parameters, delegate (DbCommand cmd)
+            int affected = await WithCommandAsync(ctx,Sql,Parameters, delegate (DbCommand cmd)
             {
-                return ExecuteNonQuerySafeAsync(cmd, Ct);
+                try
+                {
+                    return ExecuteNonQuerySafeAsync(cmd, Ct);
+                }
+                catch(Exception ex) { ctx.RaiseError(Sql, ex); return Task.FromResult(-1); }
+                
+                
             }, Ct).ConfigureAwait(false);
 
             return affected;
         }
 
-        public Task<int> Insert(
-            string Sql,
-            CancellationToken Ct = default(CancellationToken))
+        public Task<int> Insert(QueryExecutionContext ctx,string Sql,CancellationToken Ct = default(CancellationToken))
         {
-            return Upsert(Sql, null, Ct);
+            return Upsert(ctx,Sql,null, Ct);
         }
 
-        public Task<int> Insert(
-            string Sql,
-            Dictionary<string, object> Parameters,
-            CancellationToken Ct = default(CancellationToken))
+        public Task<int> Insert(QueryExecutionContext ctx,string Sql,Dictionary<string, object> Parameters,CancellationToken Ct = default(CancellationToken))
         {
-            return Upsert(Sql, Parameters, Ct);
+            return Upsert(ctx,Sql,Parameters, Ct);
         }
 
-        public Task<int> Update(
-            string Sql,
-            CancellationToken Ct = default(CancellationToken))
+        public Task<int> Update(QueryExecutionContext ctx,string Sql,CancellationToken Ct = default(CancellationToken))
         {
-            return Upsert(Sql, null, Ct);
+            return Upsert(ctx,Sql, null, Ct);
         }
 
-        public Task<int> Update(
-            string Sql,
-            Dictionary<string, object> Parameters,
-            CancellationToken Ct = default(CancellationToken))
+        public Task<int> Update(QueryExecutionContext ctx,string Sql,Dictionary<string, object> Parameters,CancellationToken Ct = default(CancellationToken))
         {
-            return Upsert(Sql, Parameters, Ct);
+            return Upsert(ctx,Sql,Parameters, Ct);
         }
 
-        public async Task<List<Dictionary<string, RecordItem>>> GetRaw<TTranslator>(
-            QueryBuilder Builder,
-            CancellationToken Ct = default(CancellationToken))
-            where TTranslator : IDbQueryTranslator, new()
+        public async Task<List<Dictionary<string, RecordItem>>> GetRaw<TTranslator>(QueryExecutionContext ctx,QueryBuilder Builder,CancellationToken Ct = default(CancellationToken))where TTranslator : IDbQueryTranslator, new()
         {
             if(Builder == null) throw new ArgumentNullException(nameof(Builder));
+            if(ctx == null) throw new ArgumentNullException(nameof(ctx));
 
             TTranslator translator = new TTranslator();
             QueryModel model = Builder.Build();
             DbQuery dbq = translator.Translate(model);
-
-            List<Dictionary<string, RecordItem>> result =
-                await GetRaw(dbq.Sql, dbq.Parameters, Ct).ConfigureAwait(false);
+            ctx.RaiseSqlGenerated(dbq.Sql);
+            List<Dictionary<string, RecordItem>> result = null;
+            try 
+            {
+                ctx.RaiseSqlDispatch(dbq.Sql);
+                result = await GetRaw(ctx, dbq.Sql, dbq.Parameters, Ct).ConfigureAwait(false);
+                ctx.RaiseSuccess(dbq.Sql);
+            }
+            catch(Exception ex) { ctx.RaiseError(dbq.Sql, ex);  }
+            
             return result;
         }
 
-        public async Task ReadRaw<TTranslator>(
-            QueryBuilder Builder,
-            Action<Dictionary<string, RecordItem>> Callback,
-            CancellationToken Ct = default(CancellationToken))
-            where TTranslator : IDbQueryTranslator, new()
+        public async Task ReadRaw<TTranslator>(QueryExecutionContext ctx,QueryBuilder Builder ,Action<Dictionary<string, RecordItem>> Callback,CancellationToken Ct = default(CancellationToken))where TTranslator : IDbQueryTranslator, new()
         {
             if(Builder == null) throw new ArgumentNullException(nameof(Builder));
             if(Callback == null) throw new ArgumentNullException(nameof(Callback));
+            if(ctx == null) throw new ArgumentNullException(nameof(ctx));
 
             TTranslator translator = new TTranslator();
             QueryModel model = Builder.Build();
             DbQuery dbq = translator.Translate(model);
+            ctx.RaiseSqlGenerated(dbq.Sql);
 
-            await ReadRaw(dbq.Sql, dbq.Parameters, Callback, Ct)
-                .ConfigureAwait(false);
+            
+            try
+            {
+                ctx.RaiseSqlDispatch(dbq.Sql);
+                await ReadRaw(ctx, dbq.Sql, dbq.Parameters, Callback, Ct).ConfigureAwait(false);
+                ctx.RaiseSuccess(dbq.Sql);
+            }
+            catch(Exception ex) { ctx.RaiseError(dbq.Sql,ex); }
+
         }
 
-        public async Task<int> Insert<TTranslator>(
-            QueryBuilder Builder,
-            CancellationToken Ct = default(CancellationToken))
-            where TTranslator : IDbQueryTranslator, new()
+        public async Task<int> Insert<TTranslator>(QueryExecutionContext ctx,QueryBuilder Builder , CancellationToken Ct = default(CancellationToken))where TTranslator : IDbQueryTranslator, new()
         {
             if(Builder == null) throw new ArgumentNullException(nameof(Builder));
 
             TTranslator translator = new TTranslator();
             QueryModel model = Builder.Build();
             DbQuery dbq = translator.Translate(model);
+            ctx.RaiseSqlGenerated(dbq.Sql);
 
-            int affected = await Insert(dbq.Sql, dbq.Parameters, Ct)
-                .ConfigureAwait(false);
+            int affected = 0;
+            try
+            {
+                ctx.RaiseSqlDispatch(dbq.Sql);
+                 affected = await Insert(ctx, dbq.Sql, dbq.Parameters, Ct).ConfigureAwait(false);
+                ctx.RaiseSuccess(dbq.Sql);
+            }
+            catch(Exception ex) { ctx.RaiseError(dbq.Sql, ex); affected = -1; }
+            
             return affected;
         }
 
-        public async Task<int> Update<TTranslator>(
-            QueryBuilder Builder,
-            CancellationToken Ct = default(CancellationToken))
-            where TTranslator : IDbQueryTranslator, new()
+        public async Task<int> Update<TTranslator>(QueryExecutionContext ctx,QueryBuilder Builder , CancellationToken Ct = default(CancellationToken))where TTranslator : IDbQueryTranslator, new()
         {
             if(Builder == null) throw new ArgumentNullException(nameof(Builder));
+            if(ctx == null) throw new ArgumentNullException(nameof(ctx));
 
             TTranslator translator = new TTranslator();
             QueryModel model = Builder.Build();
             DbQuery dbq = translator.Translate(model);
+            ctx.RaiseSqlGenerated(dbq.Sql);
 
-            int affected = await Update(dbq.Sql, dbq.Parameters, Ct)
-                .ConfigureAwait(false);
+            int affected = 0;
+            try
+            {
+                ctx.RaiseSqlDispatch(dbq.Sql);
+                affected = await Update(ctx, dbq.Sql, dbq.Parameters, Ct).ConfigureAwait(false);
+                ctx.RaiseSuccess(dbq.Sql);
+            }
+            catch(Exception ex) { ctx.RaiseError(dbq.Sql, ex); affected = -1; }
             return affected;
         }
 
@@ -235,21 +242,18 @@ namespace NekoDbGateway
 
         #region DTO API (strong typed, no IL fallback)
 
-        public async Task<List<T>> GetDto<TTranslator, T>(
-            QueryBuilder Builder,
-            CancellationToken Ct = default(CancellationToken))
-            where TTranslator : IDbQueryTranslator, new()
-            where T : new()
+        public async Task<List<T>> GetDto<T>(QueryExecutionContext ctx,QueryBuilder Builder , CancellationToken Ct = default(CancellationToken)) where T : new()
         {
             if(Builder == null) throw new ArgumentNullException(nameof(Builder));
-
-            TTranslator translator = new TTranslator();
+            if(ctx == null) throw new ArgumentNullException(nameof(ctx));
+            
             QueryModel model = Builder.Build();
-            DbQuery dbq = translator.Translate(model);
+            DbQuery dbq = ctx.Translator.Translate(model);
+            ctx.RaiseSqlGenerated(dbq.Sql);
 
             List<T> list = new List<T>();
 
-            await WithCommandAsync(dbq.Sql, dbq.Parameters, async delegate (DbCommand cmd)
+            await WithCommandAsync(ctx,dbq.Sql,dbq.Parameters, async delegate (DbCommand cmd)
             {
                 using(DbDataReader reader = await ExecuteReaderSafeAsync(cmd, Ct).ConfigureAwait(false))
                 {
@@ -287,21 +291,17 @@ namespace NekoDbGateway
             return list;
         }
 
-        public async Task ReadDto<TTranslator, T>(
-            QueryBuilder Builder,
-            Action<T> Callback,
-            CancellationToken Ct = default(CancellationToken))
-            where TTranslator : IDbQueryTranslator, new()
-            where T : new()
+        public async Task ReadDto<T>(QueryExecutionContext ctx,QueryBuilder Builder , Action<T> Callback,CancellationToken Ct = default(CancellationToken))where T : new()
         {
             if(Builder == null) throw new ArgumentNullException(nameof(Builder));
             if(Callback == null) throw new ArgumentNullException(nameof(Callback));
+            if(ctx == null) throw new ArgumentNullException(nameof(ctx));
 
-            TTranslator translator = new TTranslator();
+           
             QueryModel model = Builder.Build();
-            DbQuery dbq = translator.Translate(model);
+            DbQuery dbq = ctx.Translator.Translate(model);
 
-            await WithCommandAsync(dbq.Sql, dbq.Parameters, async delegate (DbCommand cmd)
+            await WithCommandAsync(ctx,dbq.Sql, dbq.Parameters, async delegate (DbCommand cmd)
             {
                 using(DbDataReader reader = await ExecuteReaderSafeAsync(cmd, Ct).ConfigureAwait(false))
                 {

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace NekoDbGateway
+namespace NekoDbGateway.Query
 {
     /// <summary>
     /// Construtor fluente neutro de SQL parametrizada (SELECT, INSERT, UPDATE).

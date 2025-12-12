@@ -27,12 +27,5 @@ namespace NekoDbGateway.Query
         }
     }
 
-    /// <summary>
-    /// Interface de tradutores de <see cref="QueryModel"/> para <see cref="DbQuery"/>
-    /// (SQL Server, Access, MySQL, etc.).
-    /// </summary>
-    public interface IDbQueryTranslator
-    {
-        DbQuery Translate(QueryModel model);
-    }
+   
 }
