@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace NekoDbGateway
+namespace NekoDbGateway.Query
 {
     /// <summary>
     /// Tradutor de <see cref="QueryModel"/> para SQL Server.

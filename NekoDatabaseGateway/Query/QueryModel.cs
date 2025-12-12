@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace NekoDbGateway
+namespace NekoDbGateway.Query
 {
     /// <summary>
     /// Modelo neutro de consulta SQL gerado pelo <see cref="QueryBuilder"/>.
@@ -35,30 +35,7 @@ namespace NekoDbGateway
         }
     }
 
-    /// <summary>
-    /// Representa uma consulta já traduzida para o SQL específico de um provedor.
-    /// Pronta para ser executada pelo <see cref="DatabaseGateway"/>.
-    /// </summary>
-    public sealed class DbQuery
-    {
-        /// <summary>
-        /// SQL final específica do provedor.
-        /// </summary>
-        public string Sql { get; }
-
-        /// <summary>
-        /// Parâmetros mutáveis, permitindo ajustes após a tradução, se necessário.
-        /// </summary>
-        public Dictionary<string, object> Parameters { get; }
-
-        public DbQuery(string Sql, Dictionary<string, object> Parameters)
-        {
-            if(Sql == null) throw new ArgumentNullException(nameof(Sql));
-
-            this.Sql = Sql;
-            this.Parameters = Parameters ?? new Dictionary<string, object>();
-        }
-    }
+   
 
     /// <summary>
     /// Interface de tradutores de <see cref="QueryModel"/> para <see cref="DbQuery"/> (SQL Server, Access, etc.).

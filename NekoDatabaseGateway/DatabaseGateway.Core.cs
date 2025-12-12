@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NekoDbGateway.Query;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
@@ -22,26 +23,25 @@ namespace NekoDbGateway
     /// </summary>
     public partial class DatabaseGateway
     {
-        private readonly IDbConnectionFactory _connectionFactory;
 
         #region ctor
 
         /// <summary>
-        /// Cria um <see cref="DatabaseGateway"/> utilizando a fábrica de conexões informada.
+        /// Cria um <see cref="DatabaseGateway"/>
         /// </summary>
-        public DatabaseGateway(IDbConnectionFactory Factory)
+        public DatabaseGateway()
         {
-            if(Factory == null) throw new ArgumentNullException(nameof(Factory));
-            _connectionFactory = Factory;
+            
         }
 
         #endregion
 
         #region Connection / command helpers
 
-        private async Task<DbConnection> OpenConnectionAsync(CancellationToken Ct)
+        private async Task<DbConnection> OpenConnectionAsync(QueryExecutionContext ctx,CancellationToken Ct)
         {
-            DbConnection conn = await _connectionFactory.Create().ConfigureAwait(false);
+            var conn = await ctx.ConnectionFactory.Create().ConfigureAwait(false);
+
 
             try
             {
@@ -53,18 +53,16 @@ namespace NekoDbGateway
             }
 
             return conn;
+
+            
         }
 
-        private async Task<T> WithCommandAsync<T>(
-            string Sql,
-            Dictionary<string, object> Parameters,
-            Func<DbCommand, Task<T>> Work,
-            CancellationToken Ct)
+        private async Task<T> WithCommandAsync<T>(QueryExecutionContext ctx,string Sql , Dictionary<string, object> Parameters,Func<DbCommand, Task<T>> Work,CancellationToken Ct)
         {
             if(Sql == null) throw new ArgumentNullException(nameof(Sql));
             if(Work == null) throw new ArgumentNullException(nameof(Work));
-
-            using(DbConnection conn = await OpenConnectionAsync(Ct).ConfigureAwait(false))
+            if(ctx == null) throw new ArgumentNullException(nameof(ctx));
+            using(DbConnection conn = await OpenConnectionAsync(ctx,Ct).ConfigureAwait(false))
             {
                 using(DbCommand cmd = conn.CreateCommand())
                 {
@@ -72,19 +70,24 @@ namespace NekoDbGateway
                     cmd.CommandType = CommandType.Text;
 
                     ApplyParameters(cmd, Parameters);
-
-                    T result = await Work(cmd).ConfigureAwait(false);
+                    T result = default(T);
+                    try
+                    {
+                        
+                        ctx.RaiseSqlDispatch(Sql);
+                        result = await Work(cmd).ConfigureAwait(false);
+                        ctx.RaiseSuccess(Sql);
+                    }
+                    catch(Exception ex) { ctx.RaiseError(Sql,ex); }
                     return result;
+                    
                 }
             }
         }
 
-        private Task<T> WithCommandAsync<T>(
-            string Sql,
-            Func<DbCommand, Task<T>> Work,
-            CancellationToken Ct)
+        private Task<T> WithCommandAsync<T>(QueryExecutionContext ctx,string Sql ,Func<DbCommand, Task<T>> Work,CancellationToken Ct)
         {
-            return WithCommandAsync(Sql, null, Work, Ct);
+            return WithCommandAsync(ctx, Sql, null, Work, Ct);
         }
 
         private static async Task<DbDataReader> ExecuteReaderSafeAsync(DbCommand Cmd, CancellationToken Ct)
